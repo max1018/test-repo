@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      SOURCE_URL: https://archive.org/download/Tears-of-Steel/tears_of_steel_1080p.mp4
+      SOURCE_URL: https://archive.org/download/Tears-of-Steel/tears_of_steel_1080p.mkv
     steps:
       - uses: actions/checkout@v4
 
@@ -70,15 +70,15 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r gmp100_gate/runtime/requirements.txt
 
-      - name: Download openly licensed source
+      - name: Download openly licensed 1080p source
         run: |
           mkdir -p source
           curl -L --fail --retry 8 --retry-all-errors --connect-timeout 30 \
-            "$SOURCE_URL" -o source/tears_of_steel_1080p.mp4
-          test -s source/tears_of_steel_1080p.mp4
+            "$SOURCE_URL" -o source/tears_of_steel_1080p.mkv
+          test -s source/tears_of_steel_1080p.mkv
           ffprobe -v error -show_entries format=duration,size \
             -show_entries stream=codec_name,width,height,pix_fmt \
-            -of json source/tears_of_steel_1080p.mp4 | tee source/source-probe.json
+            -of json source/tears_of_steel_1080p.mkv | tee source/source-probe.json
 
       - name: Run 60-second proportional-cap gate
         id: gate
@@ -87,7 +87,7 @@ jobs:
           rm -rf artifacts
           set +e
           python gmp100_gate/runtime/real_footage_gate.py \
-            --source source/tears_of_steel_1080p.mp4 \
+            --source source/tears_of_steel_1080p.mkv \
             --output-dir artifacts \
             --start 480 \
             --duration 60 \
@@ -114,7 +114,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gmp100-real-footage-gate-1a-compact
+          name: gmp100-real-footage-gate-1b-1080p
           path: |
             artifacts/*.json
             artifacts/*.md
