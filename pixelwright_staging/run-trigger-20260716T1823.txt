@@ -1,0 +1,3 @@
+Pixelwright 100-mission acceptance trigger.
+Created after workflow hardening completed.
+No additional branch mutations should occur until this run reaches a terminal state.
