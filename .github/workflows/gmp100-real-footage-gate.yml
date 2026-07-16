@@ -1,0 +1,81 @@
+name: GMP-100 real-footage equal-byte gate
+
+on:
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  photorealistic-proxy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      SOURCE_URL: https://archive.org/download/Tears-of-Steel/tears_of_steel_1080p.mp4
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Materialize audited gate code
+        run: |
+          mkdir -p gmp100_gate/runtime
+          tar -xzf gmp100_gate/gate-code.tar.gz -C gmp100_gate/runtime
+          ls -la gmp100_gate/runtime
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg curl
+          ffmpeg -version | head -1
+          ffmpeg -hide_banner -encoders | grep -E 'libsvtav1|libaom-av1|libopus|libx264'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: gmp100_gate/runtime/requirements.txt
+
+      - name: Install metric dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r gmp100_gate/runtime/requirements.txt
+          python -m py_compile gmp100_gate/runtime/real_footage_gate.py gmp100_gate/runtime/temporal_atlas.py
+
+      - name: Download openly licensed source
+        run: |
+          mkdir -p source
+          curl -L --fail --retry 8 --retry-all-errors --connect-timeout 30 \
+            "$SOURCE_URL" -o source/tears_of_steel_1080p.mp4
+          test -s source/tears_of_steel_1080p.mp4
+          ffprobe -v error -show_entries format=duration,size \
+            -show_entries stream=codec_name,width,height,pix_fmt \
+            -of json source/tears_of_steel_1080p.mp4 | tee source/source-probe.json
+
+      - name: Run 60-second proportional-cap gate
+        shell: bash
+        run: |
+          set +e
+          python gmp100_gate/runtime/real_footage_gate.py \
+            --source source/tears_of_steel_1080p.mp4 \
+            --output-dir artifacts \
+            --start 480 \
+            --duration 60
+          rc=$?
+          set -e
+          mkdir -p artifacts
+          echo "$rc" > artifacts/gate-exit-code.txt
+          # Exit code 3 is a legitimate evidence result: the atlas was rejected.
+          if [[ "$rc" != "0" && "$rc" != "3" ]]; then
+            exit "$rc"
+          fi
+
+      - name: Publish gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gmp100-real-footage-gate-1a
+          path: |
+            artifacts/**
+            source/source-probe.json
+          if-no-files-found: error
+          retention-days: 30
