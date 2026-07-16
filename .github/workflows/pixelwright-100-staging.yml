@@ -45,9 +45,9 @@ jobs:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin123
       MISSION_COUNT: "100"
-      BROWSER_WORKERS: "3"
       ARTIFACT_DIR: artifacts/pixelwright-staging-100
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PYTHONUNBUFFERED: "1"
 
     steps:
       - name: Check out staging branch
@@ -67,9 +67,7 @@ jobs:
             quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z \
             server /data --console-address ':9001'
           for attempt in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
-              exit 0
-            fi
+            if curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then exit 0; fi
             sleep 1
           done
           docker logs pixelwright-minio
@@ -78,7 +76,7 @@ jobs:
       - name: Install browser, OCR, and staging dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends tesseract-ocr
+          sudo apt-get install -y --no-install-recommends tesseract-ocr postgresql-client
           python -m pip install --upgrade pip
           python -m pip install \
             'boto3>=1.35,<2' \
@@ -93,18 +91,24 @@ jobs:
           python -m py_compile pixelwright_staging/harness.py
 
       - name: Execute 100 real staging missions
-        run: python pixelwright_staging/harness.py
+        run: |
+          mkdir -p artifacts/pixelwright-staging-100
+          set -o pipefail
+          python pixelwright_staging/harness.py 2>&1 | tee artifacts/pixelwright-staging-100/harness.log
 
       - name: Close any remaining staging issues after a failure
         if: always()
-        run: python pixelwright_staging/harness.py --cleanup-only
+        run: |
+          mkdir -p artifacts/pixelwright-staging-100
+          python pixelwright_staging/harness.py --cleanup-only 2>&1 | tee artifacts/pixelwright-staging-100/cleanup.log
 
       - name: Capture infrastructure diagnostics
         if: always()
         run: |
           mkdir -p artifacts/pixelwright-staging-100/diagnostics
           docker logs pixelwright-minio > artifacts/pixelwright-staging-100/diagnostics/minio.log 2>&1 || true
-          pg_isready -h 127.0.0.1 -p 5432 -U pixelwright > artifacts/pixelwright-staging-100/diagnostics/postgres-readiness.txt 2>&1 || true
+          PGPASSWORD=pixelwright psql -h 127.0.0.1 -U pixelwright -d pixelwright -c "select version();" > artifacts/pixelwright-staging-100/diagnostics/postgres-version.txt 2>&1 || true
+          PGPASSWORD=pixelwright psql -h 127.0.0.1 -U pixelwright -d pixelwright -c "select status,count(*) from missions group by status order by status;" > artifacts/pixelwright-staging-100/diagnostics/mission-counts.txt 2>&1 || true
           python --version > artifacts/pixelwright-staging-100/diagnostics/python-version.txt
           tesseract --version > artifacts/pixelwright-staging-100/diagnostics/tesseract-version.txt 2>&1 || true
 
