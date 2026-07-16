@@ -1,11 +1,11 @@
 {
-  "completed_at": "2026-07-16T23:58:25.113507+00:00",
-  "head_sha": "508a616eb770f4db563000e162f5e67c71a5a313",
-  "job_status": "cancelled",
+  "head_sha": "516b5a8a2291506fc7ec5cc669527ca805152c16",
+  "job_status": "running",
   "report": null,
   "run_attempt": "1",
-  "run_id": "29543072382",
-  "run_url": "https://github.com/max1018/test-repo/actions/runs/29543072382",
+  "run_id": "29543437829",
+  "run_url": "https://github.com/max1018/test-repo/actions/runs/29543437829",
   "schema_version": 1,
-  "summary": null
+  "started_at": "2026-07-16T23:58:53.825919+00:00",
+  "summary": "Acceptance workflow started and has not yet reached a terminal result."
 }
