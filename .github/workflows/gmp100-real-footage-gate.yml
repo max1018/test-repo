@@ -52,30 +52,57 @@ jobs:
             -of json source/tears_of_steel_1080p.mp4 | tee source/source-probe.json
 
       - name: Run 60-second proportional-cap gate
+        id: gate
         shell: bash
         run: |
+          mkdir -p artifacts
           set +e
           python gmp100_gate/runtime/real_footage_gate.py \
             --source source/tears_of_steel_1080p.mp4 \
             --output-dir artifacts \
             --start 480 \
-            --duration 60
+            --duration 60 \
+            > artifacts/gate-stdout.log \
+            2> artifacts/gate-stderr.log
           rc=$?
           set -e
-          mkdir -p artifacts
           echo "$rc" > artifacts/gate-exit-code.txt
-          # Exit code 3 is a legitimate evidence result: the atlas was rejected.
-          if [[ "$rc" != "0" && "$rc" != "3" ]]; then
-            exit "$rc"
-          fi
+          echo "gate_exit_code=$rc" >> "$GITHUB_OUTPUT"
+          tail -200 artifacts/gate-stderr.log || true
+          tail -100 artifacts/gate-stdout.log || true
+          # Exit 3 means the candidate was correctly rejected. Other failures are
+          # preserved as evidence and diagnosed from the compact artifact.
+          exit 0
 
-      - name: Publish gate evidence
+      - name: Remove transient raw frames
+        if: always()
+        run: |
+          rm -rf artifacts/work
+          find artifacts -maxdepth 1 -type f -printf '%f %s bytes\n' | sort || true
+
+      - name: Publish compact gate evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gmp100-real-footage-gate-1a
+          name: gmp100-real-footage-gate-1a-compact
           path: |
-            artifacts/**
+            artifacts/*.json
+            artifacts/*.md
+            artifacts/*.log
+            artifacts/*.txt
+            artifacts/*.png
+            artifacts/*.mp4
+            artifacts/*.gmp
             source/source-probe.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
+
+      - name: Enforce execution status after evidence upload
+        if: always()
+        shell: bash
+        run: |
+          rc="${{ steps.gate.outputs.gate_exit_code }}"
+          if [[ "$rc" != "0" && "$rc" != "3" ]]; then
+            echo "Gate execution failed with exit code $rc"
+            exit "$rc"
+          fi
