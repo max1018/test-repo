@@ -55,23 +55,24 @@ jobs:
         id: gate
         shell: bash
         run: |
-          mkdir -p artifacts
+          rm -rf artifacts
           set +e
           python gmp100_gate/runtime/real_footage_gate.py \
             --source source/tears_of_steel_1080p.mp4 \
             --output-dir artifacts \
             --start 480 \
             --duration 60 \
-            > artifacts/gate-stdout.log \
-            2> artifacts/gate-stderr.log
+            > /tmp/gmp-gate-stdout.log \
+            2> /tmp/gmp-gate-stderr.log
           rc=$?
           set -e
+          mkdir -p artifacts
+          cp /tmp/gmp-gate-stdout.log artifacts/gate-stdout.log || true
+          cp /tmp/gmp-gate-stderr.log artifacts/gate-stderr.log || true
           echo "$rc" > artifacts/gate-exit-code.txt
           echo "gate_exit_code=$rc" >> "$GITHUB_OUTPUT"
           tail -200 artifacts/gate-stderr.log || true
           tail -100 artifacts/gate-stdout.log || true
-          # Exit 3 means the candidate was correctly rejected. Other failures are
-          # preserved as evidence and diagnosed from the compact artifact.
           exit 0
 
       - name: Remove transient raw frames
