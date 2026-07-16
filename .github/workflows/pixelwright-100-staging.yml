@@ -1,6 +1,11 @@
 name: Pixelwright 100-Mission Staging Acceptance
 
 on:
+  push:
+    branches: [pixelwright-staging-100-20260716]
+    paths:
+      - "pixelwright_staging/**"
+      - ".github/workflows/pixelwright-100-staging.yml"
   pull_request:
     branches: [master]
     paths:
@@ -11,12 +16,13 @@ on:
 permissions:
   contents: read
   issues: write
+  pull-requests: write
   id-token: write
   actions: read
 
 concurrency:
-  group: pixelwright-staging-100-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  group: pixelwright-staging-100-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   acceptance:
@@ -138,3 +144,51 @@ jobs:
           path: artifacts/pixelwright-staging-100
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Report acceptance result to draft PR
+        if: always()
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: "3"
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+          from pathlib import Path
+
+          summary_path = Path("artifacts/pixelwright-staging-100/SUMMARY.md")
+          if summary_path.exists():
+              summary = summary_path.read_text(encoding="utf-8", errors="replace")
+          else:
+              summary = "The acceptance harness did not produce SUMMARY.md. Inspect the workflow logs and uploaded diagnostics."
+          body = (
+              "## Pixelwright 100-mission staging result\n\n"
+              f"**Job status:** `{os.environ['JOB_STATUS']}`\n\n"
+              f"**Workflow run:** {os.environ['RUN_URL']}\n\n"
+              + summary[:50000]
+          )
+          payload = json.dumps({"body": body}).encode("utf-8")
+          url = (
+              f"https://api.github.com/repos/{os.environ['REPOSITORY']}"
+              f"/issues/{os.environ['PR_NUMBER']}/comments"
+          )
+          request = urllib.request.Request(
+              url,
+              data=payload,
+              method="POST",
+              headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "Content-Type": "application/json",
+                  "User-Agent": "pixelwright-staging-acceptance",
+              },
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              print(response.status)
+          PY
