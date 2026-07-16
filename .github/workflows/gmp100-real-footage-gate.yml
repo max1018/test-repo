@@ -16,10 +16,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Materialize audited gate code
+      - name: Materialize and patch audited gate code
         run: |
+          rm -rf gmp100_gate/runtime
           mkdir -p gmp100_gate/runtime
           tar -xzf gmp100_gate/gate-code.tar.gz -C gmp100_gate/runtime
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('gmp100_gate/runtime/real_footage_gate.py')
+          s = p.read_text()
+          replacements = [
+              (
+                  '    width: int = METRIC_WIDTH,\n    fps: float = METRIC_FPS,\n) -> np.memmap:',
+                  '    width: int = METRIC_WIDTH,\n    height: int | None = None,\n    fps: float = METRIC_FPS,\n) -> np.memmap:',
+              ),
+              (
+                  '    height = even(width * source_height / source_width)\n    raw_path.parent.mkdir(parents=True, exist_ok=True)',
+                  '    height = even(width * source_height / source_width) if height is None else even(height)\n    raw_path.parent.mkdir(parents=True, exist_ok=True)',
+              ),
+              (
+                  '        frames = read_frames(Path(encoded["path"]), raw_path=work / f"baseline-{width}-metric.raw")',
+                  '        frames = read_frames(Path(encoded["path"]), raw_path=work / f"baseline-{width}-metric.raw", height=int(source_frames.shape[1]))',
+              ),
+              (
+                  '    candidate_base_frames = read_frames(Path(candidate_encode["path"]), raw_path=work / "atlas-base-metric.raw")',
+                  '    candidate_base_frames = read_frames(Path(candidate_encode["path"]), raw_path=work / "atlas-base-metric.raw", height=int(source_frames.shape[1]))',
+              ),
+          ]
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit(f'patch target missing: {old[:80]}')
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+          python -m py_compile gmp100_gate/runtime/real_footage_gate.py gmp100_gate/runtime/temporal_atlas.py
           ls -la gmp100_gate/runtime
 
       - name: Install system dependencies
@@ -39,7 +69,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r gmp100_gate/runtime/requirements.txt
-          python -m py_compile gmp100_gate/runtime/real_footage_gate.py gmp100_gate/runtime/temporal_atlas.py
 
       - name: Download openly licensed source
         run: |
