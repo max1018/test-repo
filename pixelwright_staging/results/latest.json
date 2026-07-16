@@ -1,11 +1,11 @@
 {
-  "completed_at": "2026-07-16T23:28:17.080862+00:00",
-  "head_sha": "004e3b032fae654652efcaf56ad8a4d9ea80d185",
+  "completed_at": "2026-07-16T23:30:11.210443+00:00",
+  "head_sha": "8eb3e4a76bd1f4ba4487cc3b45dcac0d7ffe04b2",
   "job_status": "cancelled",
   "report": null,
   "run_attempt": "1",
-  "run_id": "29542032062",
-  "run_url": "https://github.com/max1018/test-repo/actions/runs/29542032062",
+  "run_id": "29542231992",
+  "run_url": "https://github.com/max1018/test-repo/actions/runs/29542231992",
   "schema_version": 1,
   "summary": null
 }
