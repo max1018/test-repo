@@ -1,0 +1,140 @@
+name: Pixelwright 100-Mission Staging Acceptance
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "pixelwright_staging/**"
+      - ".github/workflows/pixelwright-100-staging.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+  actions: read
+
+concurrency:
+  group: pixelwright-staging-100-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  acceptance:
+    name: Execute 100 governed staging missions
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: pixelwright
+          POSTGRES_PASSWORD: pixelwright
+          POSTGRES_DB: pixelwright
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pixelwright -d pixelwright"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - name: Check out staging branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Materialize acceptance harness
+        run: |
+          cat pixelwright_staging/payload/part*.txt > /tmp/pixelwright-harness.b64
+          python - <<'PY'
+          import base64, gzip
+          from pathlib import Path
+          payload = Path('/tmp/pixelwright-harness.b64').read_text().strip()
+          Path('/tmp/pixelwright_staging_harness.py').write_bytes(
+              gzip.decompress(base64.b64decode(payload))
+          )
+          PY
+          python -m py_compile /tmp/pixelwright_staging_harness.py
+
+      - name: Install system and Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr postgresql-client
+          python -m pip install --upgrade pip
+          python -m pip install \
+            "psycopg[binary]>=3.2,<4" \
+            "boto3>=1.35,<2" \
+            "PyJWT[crypto]>=2.9,<3" \
+            "playwright>=1.51,<2" \
+            "Pillow>=11,<12" \
+            "pytesseract>=0.3.13,<1" \
+            "opencv-python-headless>=4.10,<5" \
+            "requests>=2.32,<3"
+          python -m playwright install --with-deps chromium
+
+      - name: Start S3-compatible Object Lock service
+        run: |
+          docker run -d --name pixelwright-minio \
+            -p 9000:9000 -p 9001:9001 \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin123 \
+            minio/minio:latest server /data --console-address ":9001"
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs pixelwright-minio
+          exit 1
+
+      - name: Execute acceptance matrix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DATABASE_URL: postgresql://pixelwright:pixelwright@127.0.0.1:5432/pixelwright
+          MINIO_ENDPOINT: http://127.0.0.1:9000
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin123
+          MISSION_COUNT: "100"
+          BROWSER_WORKERS: "3"
+          ARTIFACT_DIR: artifacts/pixelwright-staging-100
+        run: |
+          python /tmp/pixelwright_staging_harness.py
+
+      - name: Close any remaining temporary staging issues
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DATABASE_URL: postgresql://pixelwright:pixelwright@127.0.0.1:5432/pixelwright
+          MINIO_ENDPOINT: http://127.0.0.1:9000
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin123
+          ARTIFACT_DIR: artifacts/pixelwright-staging-100
+        run: |
+          python /tmp/pixelwright_staging_harness.py --cleanup-only
+
+      - name: Capture infrastructure diagnostics
+        if: always()
+        run: |
+          mkdir -p artifacts/pixelwright-staging-100/diagnostics
+          docker ps -a > artifacts/pixelwright-staging-100/diagnostics/docker-ps.txt
+          docker logs pixelwright-minio > artifacts/pixelwright-staging-100/diagnostics/minio.log 2>&1 || true
+          PGPASSWORD=pixelwright psql -h 127.0.0.1 -U pixelwright -d pixelwright \
+            -c "select version();" > artifacts/pixelwright-staging-100/diagnostics/postgres-version.txt 2>&1 || true
+          PGPASSWORD=pixelwright psql -h 127.0.0.1 -U pixelwright -d pixelwright \
+            -c "select status,count(*) from missions group by status order by status;" \
+            > artifacts/pixelwright-staging-100/diagnostics/mission-counts.txt 2>&1 || true
+
+      - name: Upload acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelwright-100-staging-${{ github.run_id }}
+          path: artifacts/pixelwright-staging-100
+          if-no-files-found: warn
+          retention-days: 30
