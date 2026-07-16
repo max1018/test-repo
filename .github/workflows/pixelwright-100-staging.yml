@@ -1,28 +1,30 @@
 name: Pixelwright 100-Mission Staging Acceptance
 
 on:
-  pull_request:
-    branches: [master]
+  push:
+    branches: [pixelwright-staging-100-20260716]
     paths:
-      - "pixelwright_staging/**"
+      - "pixelwright_staging/payload/**"
+      - "pixelwright_staging/run-trigger-*"
       - ".github/workflows/pixelwright-100-staging.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   issues: write
+  pull-requests: write
   id-token: write
   actions: read
 
 concurrency:
-  group: pixelwright-100-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  group: pixelwright-staging-100-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
-  staging-acceptance:
-    name: 100 governed staging missions
-    runs-on: ubuntu-24.04
-    timeout-minutes: 55
+  acceptance:
+    name: Execute 100 governed staging missions
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     services:
       postgres:
@@ -39,80 +41,167 @@ jobs:
           --health-timeout 5s
           --health-retries 20
 
-    env:
-      DATABASE_URL: postgresql://pixelwright:pixelwright@127.0.0.1:5432/pixelwright
-      MINIO_ENDPOINT: http://127.0.0.1:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin123
-      MISSION_COUNT: "100"
-      ARTIFACT_DIR: artifacts/pixelwright-staging-100
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      PYTHONUNBUFFERED: "1"
-
     steps:
       - name: Check out staging branch
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      - name: Publish staging heartbeat
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          TARGET_BRANCH: pixelwright-staging-100-20260716
+          RESULT_PATH: pixelwright_staging/results/latest.json
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import base64
+          import json
+          import os
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          from datetime import datetime, timezone
+
+          result = {
+              "schema_version": 1,
+              "job_status": "running",
+              "run_url": os.environ["RUN_URL"],
+              "run_id": os.environ.get("GITHUB_RUN_ID"),
+              "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+              "head_sha": os.environ.get("GITHUB_SHA"),
+              "started_at": datetime.now(timezone.utc).isoformat(),
+              "report": None,
+              "summary": "Acceptance workflow started and has not yet reached a terminal result.",
+          }
+          content = json.dumps(result, indent=2, sort_keys=True).encode("utf-8")
+          repository = os.environ["REPOSITORY"]
+          branch = os.environ["TARGET_BRANCH"]
+          path = os.environ["RESULT_PATH"]
+          token = os.environ["GITHUB_TOKEN"]
+          url = f"https://api.github.com/repos/{repository}/contents/{path}"
+          headers = {
+              "Accept": "application/vnd.github+json",
+              "Authorization": f"Bearer {token}",
+              "X-GitHub-Api-Version": "2022-11-28",
+              "Content-Type": "application/json",
+              "User-Agent": "pixelwright-staging-acceptance",
+          }
+          sha = None
+          try:
+              request = urllib.request.Request(
+                  url + "?ref=" + urllib.parse.quote(branch, safe=""),
+                  headers=headers,
+              )
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  sha = json.loads(response.read().decode("utf-8"))["sha"]
+          except urllib.error.HTTPError as exc:
+              if exc.code != 404:
+                  raise
+          payload = {
+              "message": f"Start Pixelwright staging run {os.environ.get('GITHUB_RUN_ID')}",
+              "content": base64.b64encode(content).decode("ascii"),
+              "branch": branch,
+          }
+          if sha:
+              payload["sha"] = sha
+          request = urllib.request.Request(
+              url,
+              data=json.dumps(payload).encode("utf-8"),
+              method="PUT",
+              headers=headers,
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              print(response.status)
+          PY
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Start pinned S3-compatible Object Lock service
+      - name: Materialize acceptance harness
+        run: |
+          cat pixelwright_staging/payload/part*.txt > /tmp/pixelwright-harness.b64
+          python - <<'PY'
+          import base64, gzip
+          from pathlib import Path
+          payload = Path('/tmp/pixelwright-harness.b64').read_text().strip()
+          Path('/tmp/pixelwright_staging_harness.py').write_bytes(
+              gzip.decompress(base64.b64decode(payload))
+          )
+          PY
+          python -m py_compile /tmp/pixelwright_staging_harness.py
+
+      - name: Install system and Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr postgresql-client
+          python -m pip install --upgrade pip
+          python -m pip install \
+            "psycopg[binary]>=3.2,<4" \
+            "boto3>=1.35,<2" \
+            "PyJWT[crypto]>=2.9,<3" \
+            "playwright>=1.51,<2" \
+            "Pillow>=11,<12" \
+            "pytesseract>=0.3.13,<1" \
+            "opencv-python-headless>=4.10,<5" \
+            "requests>=2.32,<3"
+          python -m playwright install --with-deps chromium
+
+      - name: Start S3-compatible Object Lock service
         run: |
           docker run -d --name pixelwright-minio \
             -p 9000:9000 -p 9001:9001 \
-            -e MINIO_ROOT_USER="$MINIO_ACCESS_KEY" \
-            -e MINIO_ROOT_PASSWORD="$MINIO_SECRET_KEY" \
-            quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z \
-            server /data --console-address ':9001'
-          for attempt in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then exit 0; fi
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin123 \
+            minio/minio:latest server /data --console-address ":9001"
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
+              exit 0
+            fi
             sleep 1
           done
           docker logs pixelwright-minio
           exit 1
 
-      - name: Install browser, OCR, and staging dependencies
+      - name: Execute acceptance matrix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DATABASE_URL: postgresql://pixelwright:pixelwright@127.0.0.1:5432/pixelwright
+          MINIO_ENDPOINT: http://127.0.0.1:9000
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin123
+          MISSION_COUNT: "100"
+          BROWSER_WORKERS: "3"
+          ARTIFACT_DIR: artifacts/pixelwright-staging-100
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends tesseract-ocr postgresql-client
-          python -m pip install --upgrade pip
-          python -m pip install \
-            'boto3>=1.35,<2' \
-            'cryptography>=43,<46' \
-            'pillow>=11,<12' \
-            'playwright>=1.52,<2' \
-            'psycopg[binary]>=3.2,<4' \
-            'PyJWT>=2.10,<3' \
-            'pytesseract>=0.3.13,<1' \
-            'requests>=2.32,<3'
-          python -m playwright install --with-deps chromium
-          python -m py_compile pixelwright_staging/harness.py
+          python /tmp/pixelwright_staging_harness.py
 
-      - name: Execute 100 real staging missions
-        run: |
-          mkdir -p artifacts/pixelwright-staging-100
-          set -o pipefail
-          python pixelwright_staging/harness.py 2>&1 | tee artifacts/pixelwright-staging-100/harness.log
-
-      - name: Close any remaining staging issues after a failure
+      - name: Close any remaining temporary staging issues
         if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DATABASE_URL: postgresql://pixelwright:pixelwright@127.0.0.1:5432/pixelwright
+          MINIO_ENDPOINT: http://127.0.0.1:9000
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin123
+          ARTIFACT_DIR: artifacts/pixelwright-staging-100
         run: |
-          mkdir -p artifacts/pixelwright-staging-100
-          python pixelwright_staging/harness.py --cleanup-only 2>&1 | tee artifacts/pixelwright-staging-100/cleanup.log
+          python /tmp/pixelwright_staging_harness.py --cleanup-only
 
       - name: Capture infrastructure diagnostics
         if: always()
         run: |
           mkdir -p artifacts/pixelwright-staging-100/diagnostics
+          docker ps -a > artifacts/pixelwright-staging-100/diagnostics/docker-ps.txt
           docker logs pixelwright-minio > artifacts/pixelwright-staging-100/diagnostics/minio.log 2>&1 || true
-          PGPASSWORD=pixelwright psql -h 127.0.0.1 -U pixelwright -d pixelwright -c "select version();" > artifacts/pixelwright-staging-100/diagnostics/postgres-version.txt 2>&1 || true
-          PGPASSWORD=pixelwright psql -h 127.0.0.1 -U pixelwright -d pixelwright -c "select status,count(*) from missions group by status order by status;" > artifacts/pixelwright-staging-100/diagnostics/mission-counts.txt 2>&1 || true
-          python --version > artifacts/pixelwright-staging-100/diagnostics/python-version.txt
-          tesseract --version > artifacts/pixelwright-staging-100/diagnostics/tesseract-version.txt 2>&1 || true
+          PGPASSWORD=pixelwright psql -h 127.0.0.1 -U pixelwright -d pixelwright \
+            -c "select version();" > artifacts/pixelwright-staging-100/diagnostics/postgres-version.txt 2>&1 || true
+          PGPASSWORD=pixelwright psql -h 127.0.0.1 -U pixelwright -d pixelwright \
+            -c "select status,count(*) from missions group by status order by status;" \
+            > artifacts/pixelwright-staging-100/diagnostics/mission-counts.txt 2>&1 || true
 
-      - name: Upload staging acceptance evidence
+      - name: Upload acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -120,3 +209,131 @@ jobs:
           path: artifacts/pixelwright-staging-100
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Report acceptance result to draft PR
+        if: always()
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: "3"
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+          from pathlib import Path
+
+          summary_path = Path("artifacts/pixelwright-staging-100/SUMMARY.md")
+          if summary_path.exists():
+              summary = summary_path.read_text(encoding="utf-8", errors="replace")
+          else:
+              summary = "The acceptance harness did not produce SUMMARY.md. Inspect the workflow logs and uploaded diagnostics."
+          body = (
+              "## Pixelwright 100-mission staging result\n\n"
+              f"**Job status:** `{os.environ['JOB_STATUS']}`\n\n"
+              f"**Workflow run:** {os.environ['RUN_URL']}\n\n"
+              + summary[:50000]
+          )
+          payload = json.dumps({"body": body}).encode("utf-8")
+          url = (
+              f"https://api.github.com/repos/{os.environ['REPOSITORY']}"
+              f"/issues/{os.environ['PR_NUMBER']}/comments"
+          )
+          request = urllib.request.Request(
+              url,
+              data=payload,
+              method="POST",
+              headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "Content-Type": "application/json",
+                  "User-Agent": "pixelwright-staging-acceptance",
+              },
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              print(response.status)
+          PY
+
+      - name: Persist acceptance result on staging branch
+        if: always()
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          TARGET_BRANCH: pixelwright-staging-100-20260716
+          RESULT_PATH: pixelwright_staging/results/latest.json
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import base64
+          import json
+          import os
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          artifact_root = Path("artifacts/pixelwright-staging-100")
+          report_path = artifact_root / "staging-report.json"
+          summary_path = artifact_root / "SUMMARY.md"
+          report = None
+          if report_path.exists():
+              try:
+                  report = json.loads(report_path.read_text(encoding="utf-8"))
+              except Exception as exc:
+                  report = {"parse_error": str(exc)}
+          result = {
+              "schema_version": 1,
+              "job_status": os.environ["JOB_STATUS"],
+              "run_url": os.environ["RUN_URL"],
+              "run_id": os.environ.get("GITHUB_RUN_ID"),
+              "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+              "head_sha": os.environ.get("GITHUB_SHA"),
+              "completed_at": datetime.now(timezone.utc).isoformat(),
+              "report": report,
+              "summary": summary_path.read_text(encoding="utf-8", errors="replace")[:50000] if summary_path.exists() else None,
+          }
+          content = json.dumps(result, indent=2, sort_keys=True).encode("utf-8")
+          repository = os.environ["REPOSITORY"]
+          branch = os.environ["TARGET_BRANCH"]
+          path = os.environ["RESULT_PATH"]
+          token = os.environ["GITHUB_TOKEN"]
+          url = f"https://api.github.com/repos/{repository}/contents/{path}"
+          headers = {
+              "Accept": "application/vnd.github+json",
+              "Authorization": f"Bearer {token}",
+              "X-GitHub-Api-Version": "2022-11-28",
+              "Content-Type": "application/json",
+              "User-Agent": "pixelwright-staging-acceptance",
+          }
+          sha = None
+          query_url = url + "?ref=" + urllib.parse.quote(branch, safe="")
+          try:
+              request = urllib.request.Request(query_url, headers=headers)
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  sha = json.loads(response.read().decode("utf-8"))["sha"]
+          except urllib.error.HTTPError as exc:
+              if exc.code != 404:
+                  raise
+          payload = {
+              "message": f"Record Pixelwright staging result for run {os.environ.get('GITHUB_RUN_ID')}",
+              "content": base64.b64encode(content).decode("ascii"),
+              "branch": branch,
+          }
+          if sha:
+              payload["sha"] = sha
+          request = urllib.request.Request(
+              url,
+              data=json.dumps(payload).encode("utf-8"),
+              method="PUT",
+              headers=headers,
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              print(response.status)
+          PY
