@@ -1,0 +1,357 @@
+name: Pixelwright Production Infrastructure Acceptance
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - pixelwright-cert/production-trigger.json
+
+permissions:
+  contents: write
+  issues: write
+  id-token: write
+
+concurrency:
+  group: pixelwright-production-infrastructure-acceptance
+  cancel-in-progress: false
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16.4-bookworm
+        env:
+          POSTGRES_USER: pixelwright
+          POSTGRES_PASSWORD: pixelwright_acceptance_password
+          POSTGRES_DB: pixelwright_acceptance
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pixelwright -d pixelwright_acceptance"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - name: Check out staging repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Load exact acceptance trigger
+        id: trigger
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          trigger = json.loads(Path("pixelwright-cert/production-trigger.json").read_text())
+          required = {"batch_id", "source_path", "source_sha256", "approval_comment_id"}
+          missing = sorted(required - set(trigger))
+          if missing:
+              raise SystemExit(f"missing trigger fields: {missing}")
+          for key, value in trigger.items():
+              if "\n" in str(value):
+                  raise SystemExit(f"invalid newline in {key}")
+              with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as handle:
+                  handle.write(f"PW_{key.upper()}={value}\n")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"batch_id={trigger['batch_id']}\n")
+          PY
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Decode and verify acceptance source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p source
+          base64 -d "$PW_SOURCE_PATH" > production-source.zip
+          ACTUAL_SHA="$(sha256sum production-source.zip | awk '{print $1}')"
+          test "$ACTUAL_SHA" = "$PW_SOURCE_SHA256"
+          python - <<'PY'
+          import zipfile
+          with zipfile.ZipFile("production-source.zip") as archive:
+              for info in archive.infolist():
+                  name = info.filename
+                  if name.startswith("/") or ".." in name.split("/"):
+                      raise SystemExit(f"unsafe archive entry: {name}")
+              archive.extractall("source")
+          PY
+          python -m py_compile source/scripts/github_production_acceptance.py
+
+      - name: Install control-plane dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -e "./source[postgres]"
+
+      - name: Build isolated browser-worker image
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE="pixelwright-acceptance-browser:${PW_BATCH_ID}"
+          docker build --pull -t "$IMAGE" source
+          echo "PIXELWRIGHT_BROWSER_IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Start S3 Object Lock evidence service
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACCESS="pw$(openssl rand -hex 10)"
+          SECRET="$(openssl rand -hex 24)"
+          BUCKET="pixelwright-${PW_BATCH_ID}"
+          echo "PIXELWRIGHT_S3_ACCESS_KEY=$ACCESS" >> "$GITHUB_ENV"
+          echo "PIXELWRIGHT_S3_SECRET_KEY=$SECRET" >> "$GITHUB_ENV"
+          echo "PIXELWRIGHT_S3_BUCKET=$BUCKET" >> "$GITHUB_ENV"
+          echo "PIXELWRIGHT_S3_ENDPOINT=http://127.0.0.1:9000" >> "$GITHUB_ENV"
+          docker run -d --name pixelwright-minio \
+            -p 9000:9000 -p 9001:9001 \
+            -e "MINIO_ROOT_USER=$ACCESS" \
+            -e "MINIO_ROOT_PASSWORD=$SECRET" \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            --tmpfs /tmp:rw,noexec,nosuid,size=256m \
+            --tmpfs /data:rw,nosuid,size=2048m \
+            quay.io/minio/minio:RELEASE.2025-04-03T14-56-28Z \
+            server /data --console-address ":9001"
+          for attempt in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs pixelwright-minio
+          exit 1
+
+      - name: Capture reversible GitHub control-issue baseline
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, requests
+          url = f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/issues/1"
+          response = requests.get(
+              url,
+              headers={
+                  "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+                  "Accept": "application/vnd.github+json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+              },
+              timeout=30,
+          )
+          response.raise_for_status()
+          issue = response.json()
+          baseline = {
+              "title": issue["title"],
+              "body": issue.get("body") or "",
+              "state": issue["state"],
+          }
+          with open("baseline-issue.json", "w", encoding="utf-8") as handle:
+              json.dump(baseline, handle, indent=2, sort_keys=True)
+          PY
+
+      - name: Run 100-mission production acceptance
+        id: acceptance
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PIXELWRIGHT_DATABASE_URL: postgresql+psycopg://pixelwright:pixelwright_acceptance_password@127.0.0.1:5432/pixelwright_acceptance
+          PIXELWRIGHT_ACCEPTANCE_OUTPUT: artifacts/production-acceptance
+          PIXELWRIGHT_ACCEPTANCE_BATCH_ID: ${{ env.PW_BATCH_ID }}
+          PIXELWRIGHT_SOURCE_SHA256: ${{ env.PW_SOURCE_SHA256 }}
+          PIXELWRIGHT_HUMAN_APPROVAL_COMMENT_ID: ${{ env.PW_APPROVAL_COMMENT_ID }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p artifacts/production-acceptance
+          set +e
+          python source/scripts/github_production_acceptance.py 2>&1 | tee artifacts/acceptance-console.log
+          CODE=${PIPESTATUS[0]}
+          set -e
+          echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Restore GitHub control issue and remove batch approval
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, requests
+          headers = {
+              "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28",
+          }
+          repo = os.environ["GITHUB_REPOSITORY"]
+          if os.path.exists("baseline-issue.json"):
+              baseline = json.load(open("baseline-issue.json", encoding="utf-8"))
+              response = requests.patch(
+                  f"https://api.github.com/repos/{repo}/issues/1",
+                  headers=headers,
+                  json=baseline,
+                  timeout=30,
+              )
+              response.raise_for_status()
+              check = requests.get(
+                  f"https://api.github.com/repos/{repo}/issues/1",
+                  headers=headers,
+                  timeout=30,
+              )
+              check.raise_for_status()
+              value = check.json()
+              actual = {
+                  "title": value["title"],
+                  "body": value.get("body") or "",
+                  "state": value["state"],
+              }
+              if actual != baseline:
+                  raise SystemExit("control issue baseline was not restored")
+          comment_id = os.environ.get("PW_APPROVAL_COMMENT_ID")
+          if comment_id:
+              response = requests.delete(
+                  f"https://api.github.com/repos/{repo}/issues/comments/{comment_id}",
+                  headers=headers,
+                  timeout=30,
+              )
+              if response.status_code not in {204, 404}:
+                  raise SystemExit(f"approval comment cleanup failed: {response.status_code} {response.text[:300]}")
+          PY
+
+      - name: Package redacted certification evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/remote-evidence
+          cp -f artifacts/acceptance-console.log artifacts/remote-evidence/ 2>/dev/null || true
+          cp -f artifacts/production-acceptance/production-acceptance-results.json artifacts/remote-evidence/ 2>/dev/null || true
+          cp -f artifacts/production-acceptance/production-acceptance-results.csv artifacts/remote-evidence/ 2>/dev/null || true
+          cp -f artifacts/production-acceptance/CERTIFICATION_VERDICT.md artifacts/remote-evidence/ 2>/dev/null || true
+          if [ -d artifacts/production-acceptance/representative-screenshots ]; then
+            cp -R artifacts/production-acceptance/representative-screenshots artifacts/remote-evidence/
+          fi
+          cp -f baseline-issue.json artifacts/remote-evidence/ 2>/dev/null || true
+          find artifacts/remote-evidence -type f -print0 | sort -z | xargs -0 sha256sum > artifacts/remote-evidence/SHA256SUMS.txt
+          tar -czf "artifacts/pixelwright-production-evidence-${PW_BATCH_ID}.tar.gz" -C artifacts remote-evidence
+
+      - name: Upload remotely administered immutable evidence
+        id: evidence_upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelwright-production-evidence-${{ env.PW_BATCH_ID }}
+          path: artifacts/pixelwright-production-evidence-${{ env.PW_BATCH_ID }}.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+      - name: Prove remote artifact cannot be overwritten
+        id: evidence_overwrite
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelwright-production-evidence-${{ env.PW_BATCH_ID }}
+          path: artifacts/pixelwright-production-evidence-${{ env.PW_BATCH_ID }}.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+      - name: Publish acceptance status to staging repository
+        if: always()
+        env:
+          ACCEPTANCE_EXIT: ${{ steps.acceptance.outputs.exit_code }}
+          PRIMARY_UPLOAD_OUTCOME: ${{ steps.evidence_upload.outcome }}
+          OVERWRITE_OUTCOME: ${{ steps.evidence_overwrite.outcome }}
+          ARTIFACT_ID: ${{ steps.evidence_upload.outputs.artifact-id }}
+          ARTIFACT_URL: ${{ steps.evidence_upload.outputs.artifact-url }}
+          ARTIFACT_DIGEST: ${{ steps.evidence_upload.outputs.artifact-digest }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "pixelwright-cert/results/${PW_BATCH_ID}"
+          python - <<'PY'
+          import json, os, shutil
+          from pathlib import Path
+          batch = os.environ["PW_BATCH_ID"]
+          result_dir = Path("pixelwright-cert/results") / batch
+          result_dir.mkdir(parents=True, exist_ok=True)
+          result_path = Path("artifacts/production-acceptance/production-acceptance-results.json")
+          acceptance_exit = int(os.environ.get("ACCEPTANCE_EXIT") or 999)
+          primary_ok = os.environ.get("PRIMARY_UPLOAD_OUTCOME") == "success"
+          overwrite_blocked = os.environ.get("OVERWRITE_OUTCOME") == "failure"
+          qualified = False
+          result = None
+          if result_path.exists():
+              result = json.loads(result_path.read_text())
+              qualified = bool(result.get("qualified")) and acceptance_exit == 0 and primary_ok and overwrite_blocked
+              shutil.copy2(result_path, result_dir / "production-acceptance-results.json")
+              for name in ("production-acceptance-results.csv", "CERTIFICATION_VERDICT.md"):
+                  candidate = result_path.parent / name
+                  if candidate.exists():
+                      shutil.copy2(candidate, result_dir / name)
+          remote = {
+              "provider": "GitHub Actions artifact v4",
+              "artifact_id": os.environ.get("ARTIFACT_ID"),
+              "artifact_url": os.environ.get("ARTIFACT_URL"),
+              "artifact_digest": os.environ.get("ARTIFACT_DIGEST"),
+              "primary_upload_outcome": os.environ.get("PRIMARY_UPLOAD_OUTCOME"),
+              "same_name_overwrite_outcome": os.environ.get("OVERWRITE_OUTCOME"),
+              "same_name_overwrite_blocked": overwrite_blocked,
+              "retention_days": 30,
+          }
+          summary = {
+              "schema": "pixelwright.production-acceptance-status.v1",
+              "batch_id": batch,
+              "qualified": qualified,
+              "acceptance_exit_code": acceptance_exit,
+              "source_sha256": os.environ["PW_SOURCE_SHA256"],
+              "approval_comment_id": int(os.environ["PW_APPROVAL_COMMENT_ID"]),
+              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+              "workflow_run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "workflow_sha": os.environ["GITHUB_SHA"],
+              "remote_immutable_evidence": remote,
+              "result_available": result is not None,
+          }
+          (result_dir / "status.json").write_text(json.dumps(summary, indent=2, sort_keys=True))
+          if not qualified:
+              log = Path("artifacts/acceptance-console.log")
+              (result_dir / "failure-tail.txt").write_text(
+                  log.read_text(errors="replace")[-20000:] if log.exists() else "Acceptance log unavailable."
+              )
+          PY
+          git config user.name "Pixelwright Acceptance Bot"
+          git config user.email "pixelwright-acceptance@users.noreply.github.com"
+          git add "pixelwright-cert/results/${PW_BATCH_ID}"
+          git commit -m "cert(pixelwright): publish production acceptance ${PW_BATCH_ID}" || true
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+
+      - name: Enforce final acceptance verdict
+        if: always()
+        env:
+          ACCEPTANCE_EXIT: ${{ steps.acceptance.outputs.exit_code }}
+          PRIMARY_UPLOAD_OUTCOME: ${{ steps.evidence_upload.outcome }}
+          OVERWRITE_OUTCOME: ${{ steps.evidence_overwrite.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${ACCEPTANCE_EXIT:-999}" = "0"
+          test "$PRIMARY_UPLOAD_OUTCOME" = "success"
+          test "$OVERWRITE_OUTCOME" = "failure"
