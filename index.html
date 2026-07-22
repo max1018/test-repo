@@ -29,11 +29,11 @@
     let html=await new Response(stream).text();
     if(updateResponse.ok){
       const additions=(await updateResponse.text()).trim();
-      if(additions && !html.includes("id:'dfw-blk-men-futureready'")){
+      if(additions && !html.includes("id:'national-sundance-episodic-lab-2027'")){
         html=html.replace('const radarEvents = [','const radarEvents = [\n'+additions+',');
       }
     }
-    html=html.replace(/Generated\s+[^<\n]*Central Time/gi,'Generated July 21, 2026 at 7:58 AM Central Time');
+    html=html.replace(/Generated\s+[^<\n]*Central Time/gi,'Generated July 22, 2026 at 8:11 AM Central Time');
     document.open();document.write(html);document.close();
   }catch(e){document.getElementById('loading').style.display='none';document.getElementById('error').style.display='block';console.error(e)}})();
   </script>
