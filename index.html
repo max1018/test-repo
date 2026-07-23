@@ -33,7 +33,10 @@
         html=html.replace('const radarEvents = [','const radarEvents = [\n'+additions+',');
       }
     }
-    html=html.replace(/Generated\s+[^<\n]*Central Time/gi,'Generated July 23, 2026 at 8:16 AM Central Time');
+    html=html.replace('2026-07-14T12:03:00-05:00','2026-07-23T08:16:00-05:00');
+    html=html.replace('Live build · July 14, 2026 · 12:03 PM CT · stable latest link','Live build · July 23, 2026 · 8:16 AM CT · public dashboard republished');
+    html=html.replace('HTML regenerated July 14, 2026 at 11:09 AM CT.','HTML regenerated July 23, 2026 at 8:16 AM CT.');
+    html=html.replaceAll('regenerated July 14, 2026','regenerated July 23, 2026');
     document.open();document.write(html);document.close();
   }catch(e){document.getElementById('loading').style.display='none';document.getElementById('error').style.display='block';console.error(e)}})();
   </script>
