@@ -1,0 +1,61 @@
+{
+ id:'dfw-aunties-uncles-jul25',title:'Aunties + Uncles Only Day Party',city:'DFW',area:'Downtown Dallas / Commerce Street',category:'social',
+ start:'2026-07-25T15:00:00',end:'2026-07-25T20:30:00',displayTime:'Sat, Jul 25 · 3:00–8:30 PM CT · recurring Saturdays',venue:'Hyde & Seek / SEEK Lounge, 2026 Commerce St',score:89,
+ tags:['BLACK-CENTERED','BLACK-PROFESSIONAL','SOCIAL','DAY-PARTY','R&B','HIP-HOP','21+'],audience:'A mature, polished social crowd built around 35+ energy, classic R&B, soul and 1990s–2000s hip-hop; entry is open to respectful guests age 21+.',
+ why:'One of the clearest pure-social fits for meeting mature Black professionals in a lower-pressure daytime setting rather than a late-night club.',
+ cost:'Current ticket price not exposed in the indexed listing; verify live checkout',status:'RECURRING SERIES · VERIFY LIVE TICKET',action:'GO IF MAKING A DFW WEEKEND OF IT; OVERNIGHT RECOMMENDED',
+ fit:{level:'clear',label:'Saturday event, but too far for an efficient casual day trip',note:'Leave Heritage Plaza around 8:30–9:15 AM. Driving home after the 8:30 PM close would put arrival near 1:30–2:00 AM.'},scores:{career:2,social:5,black:5,writing:1,value:4},
+ officialUrl:'https://www.eventbrite.com/e/aunties-uncles-only-day-party-tickets-1440962420389',municipality:'Dallas',neighborhood:'Downtown · Commerce Street',visualTone:'social',visualIcon:'☀',
+ travel:{etaMin:255,etaMax:300,parking:25,arrivalBuffer:30,destination:'Hyde & Seek, 2026 Commerce St, Dallas, TX 75201',overnight:true,note:'Recommended Heritage Plaza departure: approximately 8:30–9:15 AM.'},
+ organizer:'Socialites Motion',format:'Recurring mature-crowd day party',bestFor:'Pure social connection with a polished 30+ Black professional crowd',goAlone:'Yes — arrive near opening while conversation is easiest',
+ ageAccess:'21+; curated for 35+ energy',attire:'Grown, stylish and confident; no athletic wear or slides',networkingObjective:'Arrive before 4 PM, initiate four conversations and exchange contact information with one person you would realistically meet again.',
+ priceNotes:'No refunds were stated. Verify the live ticket tier and exact Saturday occurrence before driving.',verifiedOn:'Official Eventbrite organizer listing checked July 24, 2026'
+},
+{
+ id:'hou-network-nourish-aug11',title:'GHBC Network & Nourish — August Luncheon',city:'Houston',area:'Third Ward / Emancipation Avenue',category:'career',
+ start:'2026-08-11T11:30:00',end:'2026-08-11T13:00:00',displayTime:'Tue, Aug 11 · 11:30 AM–1:00 PM CT',venue:'Eldorado Ballroom, 2310 Elgin St',score:87,
+ tags:['BLACK-CENTERED','BUSINESS','NETWORK','LUNCHEON'],audience:'Black entrepreneurs, business owners and professionals seeking practical conversation, partnerships and community support.',
+ why:'A credible Black Chamber room with structured business networking, food and direct access to Houston entrepreneurs; stronger when paired with additional Houston meetings.',
+ cost:'$15 current members; $30 nonmembers; $250 exhibitor booth',status:'ON SALE · 94 NONMEMBER TICKETS AND 4 EXHIBITOR BOOTHS SHOWN',action:'DO NOT TAKE PTO FOR THIS ALONE; STACK WITH CLIENT MEETINGS OR EXHIBIT',
+ fit:{level:'hard',label:'Conflicts completely with the 8–5 workday',note:'Leave Heritage Plaza around 6:55–7:25 AM. Use PTO and schedule at least two additional Houston business meetings.'},scores:{career:4,social:3,black:5,writing:1,value:4},
+ officialUrl:'https://ghbcc.com/event/network-nourish-2nd-tuesday-luncheon-august-2026/',municipality:'Houston',neighborhood:'Third Ward · Eldorado Ballroom',visualTone:'career',visualIcon:'↗',
+ travel:{etaMin:175,etaMax:205,parking:20,arrivalBuffer:20,destination:'Eldorado Ballroom, 2310 Elgin St, Houston, TX 77004',overnight:false,note:'Recommended Heritage Plaza departure: approximately 6:55–7:25 AM; PTO required.'},
+ organizer:'Greater Houston Black Chamber',format:'Business luncheon and facilitated networking',bestFor:'Houston Black-business relationships and MX Ventures lead development',goAlone:'Yes',attire:'Business casual',
+ networkingObjective:'Book two Houston meetings around the luncheon and leave with one qualified prospect, one referral partner and one chamber follow-up.',priceNotes:'Admission includes food and beverages. Current inventory displayed on the official organizer page.',verifiedOn:'Official GHBC page checked July 24, 2026'
+},
+{
+ id:'aus-drippin-pool-party-aug15',title:'Drippin Pool Party — Hip-Hop, R&B & Afrobeat',city:'Austin',area:'Downtown Austin / Red River District',category:'social',
+ start:'2026-08-15T16:00:00',end:'2026-08-15T21:00:00',displayTime:'Sat, Aug 15 · 4:00–9:00 PM CT',venue:'Hotel Indigo Austin Downtown, 810 Red River St',score:86,
+ tags:['SOCIAL','POOL-PARTY','HIP-HOP','R&B','AFROBEAT','AMAPIANO','21+'],audience:'Adults 21+ gathering for a rooftop pool party featuring hip-hop, R&B, Afrobeat and Amapiano with DJs Hella Yella and Concept.',
+ why:'A practical Austin pure-social option with five hours of daytime-to-evening interaction, music and movement; easier to meet people than at a seated event.',
+ cost:'Live ticket price not exposed in the indexed listing; paid parking',status:'ON SALE · REFUNDS UP TO 1 DAY BEFORE EVENT',action:'GO AFTER VERIFYING WEATHER, TICKET TOTAL AND POOL RULES',
+ fit:{level:'clear',label:'Practical Saturday Austin trip',note:'Leave Heritage Plaza around 1:00–1:25 PM for a 3:30 PM arrival and check-in buffer.'},scores:{career:1,social:5,black:3,writing:1,value:4},
+ officialUrl:'https://www.eventbrite.com/e/drippin-pool-party-austin-hip-hop-rb-afrobeat-pool-party-august-15-tickets-1992777301553',municipality:'Austin',neighborhood:'Downtown · Red River District',visualTone:'social',visualIcon:'≈',
+ travel:{etaMin:75,etaMax:100,parking:25,arrivalBuffer:30,destination:'Hotel Indigo Austin Downtown, 810 Red River St, Austin, TX 78701',overnight:false,note:'Recommended Heritage Plaza departure: approximately 1:00–1:25 PM.'},
+ organizer:'DJ Hella Yella',format:'Rooftop pool party and DJ social',bestFor:'Pure social, dancing and meeting Austin nightlife regulars',goAlone:'Yes — arrive near 4 PM before groups settle in',
+ ageAccess:'21+',attire:'Pool-party attire; verify hotel rules and bring a change of clothes',networkingObjective:'Arrive early, join one activity or conversation before the music peaks and exchange contact information with one person you would see again.',priceNotes:'Paid parking. Refunds listed up to one day before the event. Verify weather and rain policy.',verifiedOn:'Official Eventbrite organizer listing checked July 24, 2026'
+},
+{
+ id:'hou-pinnacle-kickoff-aug31',title:'GHBC 29th Annual Pinnacle Awards Kickoff Reception',city:'Houston',area:'River Oaks / Greenbriar Drive',category:'hybrid',
+ start:'2026-08-31T18:00:00',end:'2026-08-31T20:00:00',displayTime:'Mon, Aug 31 · 6:00–8:00 PM CT',venue:'The Podium at Porsche River Oaks, 4007B Greenbriar Dr',score:91,
+ tags:['BLACK-CENTERED','BUSINESS','EXECUTIVES','NETWORK','SOCIAL'],audience:'Houston executives, entrepreneurs, corporate partners, elected officials and community leaders gathering for the Pinnacle Awards nominee announcement.',
+ why:'A higher-level relationship room than a generic mixer, with influential Black business leaders and corporate partners in an elevated reception setting.',
+ cost:'Official checkout shows $75 GA; page header still displays $50',status:'PRICE DISPLAY CONFLICT · 45 GA TICKETS SHOWN',action:'MAYBE — BUY ONLY IF YOU CAN LEAVE WORK EARLY AND HAVE A TARGET CONTACT PLAN',
+ fit:{level:'hard',label:'Not possible after a normal 5 PM departure from San Antonio',note:'Leave Heritage Plaza around 1:25–1:55 PM or use PTO. A 5 PM departure likely arrives as the reception ends.'},scores:{career:5,social:4,black:5,writing:1,value:3},
+ officialUrl:'https://ghbcc.com/event/29th-annual-pinnacle-awards-kickoff-reception/',municipality:'Houston',neighborhood:'River Oaks · Greenbriar corridor',visualTone:'hybrid',visualIcon:'◆',
+ travel:{etaMin:175,etaMax:205,parking:20,arrivalBuffer:30,destination:'The Podium at Porsche River Oaks, 4007B Greenbriar Dr, Houston, TX 77098',overnight:true,note:'Recommended Heritage Plaza departure: approximately 1:25–1:55 PM.'},
+ organizer:'Greater Houston Black Chamber',format:'VIP-style reception, nominee announcement and executive networking',bestFor:'Black executive, corporate-partner and business-development relationships',goAlone:'Yes — with a researched target list',
+ attire:'Business professional / elevated cocktail',networkingObjective:'Research three nominees or sponsors before arrival and secure two follow-up conversations relevant to MX Ventures.',priceNotes:'The page header displays $50 while the active GA checkout shows $75. Confirm the final total before purchase.',verifiedOn:'Official GHBC page checked July 24, 2026'
+},
+{
+ id:'dfw-quest-success-aug20',title:'DBCC Quest for Success Awards & Luncheon',city:'DFW',area:'Dallas / venue pending',category:'career',
+ start:'2026-08-20T11:00:00',end:'2026-08-20T14:00:00',displayTime:'Thu, Aug 20 · 11:00 AM CT · end time not published',venue:'Location TBD',score:83,
+ tags:['BLACK-CENTERED','BUSINESS','AWARDS','NETWORK','VENUE-PENDING'],audience:'Black entrepreneurs, business leaders and organizations supporting Black-owned businesses across Dallas–Fort Worth.',
+ why:'A credible Dallas Black Chamber recognition and relationship-building event, but the $300 individual price, daytime schedule and unresolved venue weaken the value for a San Antonio trip.',
+ cost:'$300 individual ticket + $7.50 service fee; $400 ticket + DBCC membership + $10 fee',status:'ON SALE · VENUE TBD',action:'WATCH — DO NOT BUY UNTIL VENUE AND ATTENDEE VALUE ARE CLEAR',
+ fit:{level:'hard',label:'Requires full PTO and likely a Dallas overnight',note:'For same-day travel, leave Heritage Plaza around 4:30–5:15 AM. A prior-night arrival is more realistic.'},scores:{career:4,social:3,black:5,writing:1,value:2},
+ officialUrl:'https://www.dbcc.org/event-details/quest-for-success-awards-luncheon-2',municipality:'Dallas',neighborhood:'Venue pending',visualTone:'career',visualIcon:'★',
+ travel:{etaMin:255,etaMax:300,parking:25,arrivalBuffer:30,destination:'Dallas venue pending',overnight:true,note:'Recommended plan: arrive in Dallas the prior evening; do not book nonrefundable travel until venue is confirmed.'},
+ organizer:'Dallas Black Chamber of Commerce',format:'Awards luncheon and Black-business networking',bestFor:'Established business owners seeking DFW Black-business relationships',goAlone:'Yes, with pre-event research',attire:'Business professional',
+ networkingObjective:'Attend only with a sponsor, honoree or partner list and at least three targeted introductions.',priceNotes:'Venue remains TBD. Sponsorship tiers range to $50,000. Individual ticket is $300 plus $7.50 fee.',verifiedOn:'Official DBCC pages checked July 24, 2026'
+}
