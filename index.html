@@ -17,26 +17,32 @@
   <script>
   (async()=>{try{
     const base='https://raw.githubusercontent.com/max1018/test-repo/master/';
-    const [payloadResponse,updateResponse]=await Promise.all([
+    const updateFiles=['updates/current-events.js','updates/current-events-2026-07-24.js'];
+    const responses=await Promise.all([
       fetch(base+'parts/p00.txt',{cache:'no-store'}),
-      fetch(base+'updates/current-events.js',{cache:'no-store'})
+      ...updateFiles.map(path=>fetch(base+path,{cache:'no-store'}))
     ]);
+    const payloadResponse=responses[0];
+    const updateResponses=responses.slice(1);
     if(!payloadResponse.ok)throw new Error('payload');
     const b64=(await payloadResponse.text()).trim();
     const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
     if(!('DecompressionStream' in window))throw new Error('browser');
     const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
     let html=await new Response(stream).text();
-    if(updateResponse.ok){
-      const additions=(await updateResponse.text()).trim();
-      if(additions && !html.includes("id:'national-sundance-episodic-lab-2027'")){
+    for(const response of updateResponses){
+      if(!response.ok)continue;
+      const additions=(await response.text()).trim();
+      const match=additions.match(/id:'([^']+)'/);
+      const firstId=match?match[1]:'';
+      if(additions && (!firstId || !html.includes("id:'"+firstId+"'"))){
         html=html.replace('const radarEvents = [','const radarEvents = [\n'+additions+',');
       }
     }
-    html=html.replace('2026-07-14T12:03:00-05:00','2026-07-23T08:16:00-05:00');
-    html=html.replace('Live build · July 14, 2026 · 12:03 PM CT · stable latest link','Live build · July 23, 2026 · 8:16 AM CT · public dashboard republished');
-    html=html.replace('HTML regenerated July 14, 2026 at 11:09 AM CT.','HTML regenerated July 23, 2026 at 8:16 AM CT.');
-    html=html.replaceAll('regenerated July 14, 2026','regenerated July 23, 2026');
+    html=html.replace('2026-07-14T12:03:00-05:00','2026-07-24T08:00:00-05:00');
+    html=html.replace(/Live build · [^<\n]*/,'Live build · July 24, 2026 · 8:00 AM CT · public dashboard republished');
+    html=html.replace(/HTML regenerated [^<\n]*CT\./,'HTML regenerated July 24, 2026 at 8:00 AM CT.');
+    html=html.replaceAll('regenerated July 14, 2026','regenerated July 24, 2026');
     document.open();document.write(html);document.close();
   }catch(e){document.getElementById('loading').style.display='none';document.getElementById('error').style.display='block';console.error(e)}})();
   </script>
