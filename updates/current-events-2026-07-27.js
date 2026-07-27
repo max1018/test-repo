@@ -1,0 +1,40 @@
+{
+ id:'aus-small-business-connections-aug19',title:'Austin Small Business Connections Conference',city:'Austin',area:'Barton Springs / Palmer Events Center',category:'career',
+ start:'2026-08-19T08:00:00',end:'2026-08-19T14:30:00',displayTime:'Wed, Aug 19 · 8:00 AM–2:30 PM CT',venue:'Palmer Events Center, Austin',score:91,
+ tags:['SMALL-BUSINESS','MINORITY-BUSINESS','PROCUREMENT','MARKETING','CAPITAL','NETWORK','FREE'],audience:'Small business owners, aspiring entrepreneurs, freelancers, independent contractors, nonprofit leaders, lenders, chambers and City of Austin departments.',
+ why:'A free, structured full-day conference with sessions on access to capital, marketing, City contracting, permits and business resilience, plus direct access to City departments and resource partners. Strong fit for growing MX Ventures and learning Austin procurement pathways.',
+ cost:'Free; registration required; validated parking',status:'NEW · FREE · REGISTRATION ACTIVE',action:'REGISTER; TAKE PTO; BRING A ONE-PAGE CAPABILITY STATEMENT AND THREE CITY-CONTRACTING QUESTIONS',
+ fit:{level:'hard',label:'Requires a full PTO day',note:'The program begins at 8 AM and ends at 2:30 PM on a Wednesday. It cannot fit around a normal 8–5 workday.'},scores:{career:5,social:3,black:4,writing:1,value:5},
+ officialUrl:'https://www.austintexas.gov/small-minority-business/events/austin-small-business-connections-conference',municipality:'Austin',neighborhood:'Barton Springs · South Central Austin',visualTone:'career',visualIcon:'▣',
+ travel:{etaMin:75,etaMax:100,parking:20,arrivalBuffer:30,destination:'Palmer Events Center, 900 Barton Springs Rd, Austin, TX',overnight:false,note:'Recommended Heritage Plaza departure: approximately 5:40–6:05 AM for a 7:30 AM arrival.'},
+ organizer:'Austin Small and Minority Business Resources',format:'Conference, resource expo, expert sessions and structured networking',bestFor:'City contracting, capital access, marketing resources and small-business partnerships',goAlone:'Yes',attire:'Business casual',
+ networkingObjective:'Meet one City procurement representative, one lender or capital-readiness resource, and one potential subcontracting or referral partner. Ask how MX Ventures can qualify for future digital, analytics and marketing scopes.',
+ priceNotes:'Official City of Austin listing confirms no-cost admission and validated parking.',verifiedOn:'Official City of Austin and Eventbrite pages checked July 27, 2026'
+},
+{
+ id:'hou-hapie-awards-aug26',title:'HAPIE Awards 2026',city:'Houston',area:'Spring Branch / Katy Freeway',category:'hybrid',
+ start:'2026-08-26T18:00:00',end:'2026-08-26T22:00:00',displayTime:'Wed, Aug 26 · 6:00–10:00 PM CT',venue:'Houston Improv, 7620 Katy Freeway',score:82,
+ tags:['TV/FILM','PRODUCTION','CREATOR-ECONOMY','NETWORK','AWARDS','SOCIAL'],audience:'Producers, directors, production crew, creatives, agencies, studios, talent, brands, investors and supporters of Houston film, commercial, live-event and digital-media production.',
+ why:'One of Houston’s clearest production-industry rooms, combining awards, dinner, drinks and high-density networking with the people building local film, commercial and digital-media projects.',
+ cost:'Live ticket price not exposed in the indexed listing; free parking; refunds available until one day before the event',status:'NEW · ACTIVE REGISTRATION · PRICE TBD',action:'MAYBE — VERIFY PRICE, TAKE EARLY RELEASE AND ARRIVE WITH A TARGET CONTACT LIST',
+ fit:{level:'hard',label:'Not practical after a normal 8–5 workday',note:'Leaving Heritage Plaza at 5 PM would likely mean arriving near 8 PM. Leave around 1:50–2:20 PM for doors at 6 PM.'},scores:{career:5,social:4,black:2,writing:4,value:3},
+ officialUrl:'https://www.eventbrite.com/e/hapie-awards-2026-tickets-1988439532168',municipality:'Houston',neighborhood:'Spring Branch · Katy Freeway corridor',visualTone:'cinema',visualIcon:'◉',
+ travel:{etaMin:170,etaMax:200,parking:20,arrivalBuffer:35,destination:'Houston Improv, 7620 Katy Freeway, Houston, TX',overnight:false,note:'Recommended Heritage Plaza departure: approximately 1:50–2:20 PM. Expect a very late return if driving home after 10 PM.'},
+ organizer:'Houston Association of Producers',format:'Awards program, comedy, dinner, drinks and production-industry networking',bestFor:'Meeting Houston producers, directors, crew, agencies, studios and media-service buyers',goAlone:'Yes',attire:'Creative-industry cocktail / polished business casual',
+ networkingObjective:'Target one producer, one agency or brand-side buyer, and one production-services operator. Connect ESPN live-production and software/analytics experience to practical production or audience-measurement needs.',
+ breakInMove:'Do not lead with an unsolicited series pitch. Use a 30-second introduction connecting live sports production, software and television writing, then ask what kinds of writers, digital tools or production partners Houston projects currently need.',
+ priceNotes:'Eventbrite confirms four hours, free parking, doors at 6 PM and refunds through the day before; verify the live checkout total before committing.',verifiedOn:'Official Eventbrite listing checked July 27, 2026'
+},
+{
+ id:'hou-48hfp-showcase-aug1',title:'Houston 48 Hour Film Project Showcase',city:'Houston',area:'Fifth Ward / The DeLuxe Theater',category:'hybrid',
+ start:'2026-08-01T11:00:00',end:'2026-08-01T22:00:00',displayTime:'Sat, Aug 1 · official showcase starts 11:00 AM; ticketed blocks listed around noon, 3:30 PM and 8:00 PM',venue:'The DeLuxe Theater, 3303 Lyons Ave',score:77,
+ tags:['TV/FILM','LOCAL-FILM','SCREENING','FILMMAKER','NETWORK'],audience:'Houston 48 Hour Film Project teams, cast, crew, local filmmakers, supporters and people seeking entry points into the Houston production community.',
+ why:'The strongest value is not passive viewing; it is meeting active local teams immediately after they completed films under deadline pressure. The DeLuxe Theater setting also creates a more communal environment than a standard multiplex screening.',
+ cost:'Ticket price not exposed; verify the selected screening block',status:'NEW · HARD CALENDAR CONFLICT · DETROIT TRIP',action:'SKIP THIS YEAR UNLESS THE DETROIT TRIP CHANGES',
+ fit:{level:'hard',label:'Hard travel conflict',note:'Your calendar shows you in Detroit from July 30 through August 3, so this Houston event is not realistically attendable.'},scores:{career:4,social:4,black:2,writing:3,value:4},
+ officialUrl:'https://www.48hourfilm.com/houston/48hfp/2026',municipality:'Houston',neighborhood:'Fifth Ward · Lyons Avenue',visualTone:'cinema',visualIcon:'▶',travel:{mode:'none'},
+ organizer:'Houston 48 Hour Film Project',format:'Premiere showcase with multiple screening blocks',bestFor:'Meeting active Houston indie-film teams and identifying future collaborators',goAlone:'Yes',attire:'Casual creative-community attire',
+ networkingObjective:'When attending a future edition, speak with two team leaders and ask when they hold crew calls, table reads or pre-production meetups.',
+ breakInMove:'Join the next cycle before kickoff as a writer, production assistant or data/technology volunteer rather than attending only as an audience member.',
+ priceNotes:'Official 48HFP page confirms the August 1 showcase at The DeLuxe Theater; Eventbrite indexes multiple screening blocks.',verifiedOn:'Official 48 Hour Film Project and Eventbrite listings checked July 27, 2026'
+}
