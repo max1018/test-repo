@@ -17,7 +17,7 @@
   <script>
   (async()=>{try{
     const base='https://raw.githubusercontent.com/max1018/test-repo/master/';
-    const updateFiles=['updates/current-events.js','updates/current-events-2026-07-24.js','updates/current-events-2026-07-25.js','updates/current-events-2026-07-26.js','updates/current-events-2026-07-27.js'];
+    const updateFiles=['updates/current-events.js','updates/current-events-2026-07-24.js','updates/current-events-2026-07-25.js','updates/current-events-2026-07-26.js','updates/current-events-2026-07-27.js','updates/current-events-2026-07-28.js'];
     const responses=await Promise.all([
       fetch(base+'parts/p00.txt',{cache:'no-store'}),
       ...updateFiles.map(path=>fetch(base+path,{cache:'no-store'}))
@@ -33,16 +33,16 @@
     for(const response of updateResponses){
       if(!response.ok)continue;
       const additions=(await response.text()).trim();
-      const match=additions.match(/id:'([^']+)'/);
+      const match=additions.match(/id:["']([^"']+)["']/);
       const firstId=match?match[1]:'';
-      if(additions && (!firstId || !html.includes("id:'"+firstId+"'"))){
+      if(additions && (!firstId || (!html.includes("id:'"+firstId+"'") && !html.includes('id:"'+firstId+'"')))){
         html=html.replace('const radarEvents = [','const radarEvents = [\n'+additions+',');
       }
     }
-    html=html.replace('2026-07-14T12:03:00-05:00','2026-07-27T08:15:00-05:00');
-    html=html.replace(/Live build · [^<\n]*/,'Live build · July 27, 2026 · 8:15 AM CT · public dashboard republished');
-    html=html.replace(/HTML regenerated [^<\n]*CT\./,'HTML regenerated July 27, 2026 at 8:15 AM CT.');
-    html=html.replaceAll('regenerated July 14, 2026','regenerated July 27, 2026');
+    html=html.replace('2026-07-14T12:03:00-05:00','2026-07-28T08:00:00-05:00');
+    html=html.replace(/Live build · [^<\n]*/,'Live build · July 28, 2026 · 8:00 AM CT · public dashboard republished');
+    html=html.replace(/HTML regenerated [^<\n]*CT\./,'HTML regenerated July 28, 2026 at 8:00 AM CT.');
+    html=html.replaceAll('regenerated July 14, 2026','regenerated July 28, 2026');
     document.open();document.write(html);document.close();
   }catch(e){document.getElementById('loading').style.display='none';document.getElementById('error').style.display='block';console.error(e)}})();
   </script>
