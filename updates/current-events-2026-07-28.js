@@ -1,0 +1,40 @@
+{
+  id:"aus-wift-no-notes-table-read-aug15",title:"WIFT Table Reads: ‘No Notes’ Comedy TV Pilot",city:"Austin",area:"East Austin / East 6th",category:"hybrid",
+  start:"2026-08-15T11:30:00",end:"2026-08-15T14:00:00",displayTime:"Sat, Aug 15 · 11:30 AM–2:00 PM CT",venue:"RichesArt Gallery, 2511 E 6th St Unit A",score:92,
+  tags:["TV/FILM","WRITING","TABLE-READ","WIFT","NETWORK","Q&A"],audience:"Local screenwriters, actors, WIFT members, emerging filmmakers and allies interested in femme-forward stories and television comedy.",
+  why:"A live actor read of a work-in-progress comedy pilot followed by Q&A. This is direct craft exposure and a credible entry point into Austin’s recurring screenwriting community, not a passive screening.",
+  cost:"Live ticket price not exposed; free street parking; verify checkout",status:"NEW · DIRECT TV-WRITING VALUE · SATURDAY",action:"GO — STACK WITH DRIPPIN POOL PARTY LATER THAT DAY",
+  fit:{level:"clear",label:"Practical Saturday Austin trip",note:"Leave Heritage Plaza around 9:15–9:40 AM for an 11:15 AM arrival. The event ends at 2 PM, leaving about two hours before the 4 PM Drippin Pool Party."},scores:{career:5,social:4,black:2,writing:5,value:5},
+  officialUrl:"https://www.eventbrite.com/e/wift-table-reads-no-notes-comedy-tv-pilot-tickets-1994237527127",municipality:"Austin",neighborhood:"East 6th · Central East Austin",visualTone:"cinema",visualIcon:"◉",
+  travel:{etaMin:75,etaMax:100,parking:20,arrivalBuffer:15,destination:"RichesArt Gallery, 2511 E 6th St Unit A, Austin, TX 78702",overnight:false,note:"Recommended Heritage Plaza departure: approximately 9:15–9:40 AM."},
+  organizer:"WIFT Austin / Rowan Forbes",format:"Live comedy-pilot table read and audience Q&A",bestFor:"Hearing pilot pages performed, meeting Austin writers and actors, and learning how the monthly WIFT table-read program works",goAlone:"Yes",attire:"Creative casual",
+  networkingObjective:"Meet one WIFT organizer and one screenwriter or actor. Ask how writers are selected for future table reads and what submission materials are expected.",
+  breakInMove:"Listen for where laughs land, where exposition slows the read and whether the pilot’s character engine feels repeatable. Ask one concise craft question, then follow up with two contacts within 24 hours.",
+  priceNotes:"Eventbrite confirms the schedule, venue, Q&A, free street parking and 13+ access; the live ticket price was not exposed during verification.",verifiedOn:"Official Eventbrite listing checked July 28, 2026"
+},
+{
+  id:"national-ucla-tv-writing-deadline-aug10",title:"UCLA Professional Program: Writing for Television — Application Deadline",city:"National",area:"Online / Los Angeles",category:"career",
+  start:"2026-08-10T00:00:00",end:"2026-08-10T23:59:00",displayTime:"Deadline: Mon, Aug 10 · exact cutoff time not stated",venue:"Online or UCLA campus",score:86,
+  tags:["TV/FILM","WRITING","APPLY","DEADLINE","ONLINE","MAJOR"],audience:"Writers with a bachelor’s degree seeking a yearlong, graduate-level but non-degree television-writing workshop in comedy or drama.",
+  why:"Small workshops capped at 10 provide sustained craft development and peer accountability. The brand is credible, but the $6,750 tuition and lack of known financial aid make this a serious investment rather than an automatic application.",
+  cost:"No application fee; $6,750 tuition; $2,000 deposit if accepted",status:"NEW · DEADLINE APPROACHING · HIGH COST",action:"APPLY ONLY IF READY TO COMMIT THE TUITION AND YEARLONG WORKLOAD",
+  fit:{level:"clear",label:"Application is 8–5 compatible",note:"The application is online. Recurring class and workshop times must be checked before accepting an offer."},scores:{career:4,social:2,black:1,writing:5,value:2},
+  officialUrl:"https://professionalprograms.tft.ucla.edu/apply/writing-for-television/",municipality:"Remote",neighborhood:"Online / UCLA",visualTone:"career",visualIcon:"✎",travel:{mode:"online"},
+  organizer:"UCLA School of Theater, Film and Television Professional Programs",format:"Three-quarter television-writing program with lectures, live Q&A and a small weekly workshop",bestFor:"Sustained television-writing craft development, structured deadlines and a small cohort",goAlone:"Remote program",attire:"N/A",
+  networkingObjective:"Use the cohort and live Q&A deliberately: contribute thoughtful notes, build reciprocal peer relationships and maintain a contact log rather than relying on the UCLA name alone.",
+  breakInMove:"Apply with the strongest five consecutive script pages and a specific statement of purpose showing whether you are pursuing half-hour comedy or one-hour drama and why you need a yearlong workshop now.",
+  priceNotes:"UCLA lists $6,750 tuition, no application fee, a $2,000 acceptance deposit and no known loans, scholarships, financial aid or military waivers for this non-degree program.",verifiedOn:"Official UCLA TFT Professional Programs pages checked July 28, 2026"
+},
+{
+  id:"aus-sxsw-film-tv-first-deadline-aug25",title:"SXSW 2027 Film & TV Festival — First Submission Deadline",city:"Austin",area:"Online submission / Austin festival",category:"career",
+  start:"2026-08-25T00:00:00",end:"2026-08-25T23:59:00",displayTime:"Tue, Aug 25 · 11:59 PM first deadline",venue:"Online submission; festival March 15–21, 2027 in Austin",score:84,
+  tags:["TV/FILM","SUBMIT","DEADLINE","MAJOR","SXSW"],audience:"Filmmakers and episodic creators with completed or near-complete feature, short, television, music-video or XR projects.",
+  why:"SXSW submissions opened July 28. Selection can generate major discovery and industry access, but this is not a screenplay competition and requires a viewable production link when the application is submitted.",
+  cost:"First deadline: feature $75; short, TV, music video or XR $55",status:"OPENED TODAY · FIRST DEADLINE AUG 25",action:"SUBMIT ONLY WITH A FINISHED OR PICTURE-LOCK PRODUCTION — NOT AN UNPRODUCED SCRIPT",
+  fit:{level:"clear",label:"Online deadline",note:"No workday or travel conflict. Keep the screening link working and unchanged through March 2027."},scores:{career:5,social:2,black:1,writing:3,value:4},
+  officialUrl:"https://sxsw.com/apply/film-submissions/",municipality:"Austin",neighborhood:"Online submission · Festival in central Austin",visualTone:"cinema",visualIcon:"▶",travel:{mode:"online"},
+  organizer:"SXSW Film & TV Festival",format:"Competitive festival submission for completed screen projects",bestFor:"Finished feature films, short films, television projects, music videos and XR experiences seeking premiere exposure",goAlone:"Online submission",attire:"N/A",
+  networkingObjective:"If selected, build a targeted press, producer and distributor outreach plan before arriving in Austin; submission alone is not a networking strategy.",
+  breakInMove:"Do not rush an incomplete production for the first deadline. SXSW reviews the first submitted cut and does not promise to re-watch later versions, so submit the strongest finished form available.",
+  priceNotes:"Official first-deadline fees are $75 for features and $55 for short, TV, music-video and XR projects. Later rounds cost more.",verifiedOn:"Official SXSW submission and support pages checked July 28, 2026"
+}
