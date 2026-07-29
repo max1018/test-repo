@@ -1,0 +1,138 @@
+name: GMP-100 real-footage equal-byte gate
+
+on:
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  photorealistic-proxy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      SOURCE_URL: https://archive.org/download/Tears-of-Steel/tears_of_steel_1080p.mkv
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Materialize and patch audited gate code
+        run: |
+          rm -rf gmp100_gate/runtime
+          mkdir -p gmp100_gate/runtime
+          tar -xzf gmp100_gate/gate-code.tar.gz -C gmp100_gate/runtime
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('gmp100_gate/runtime/real_footage_gate.py')
+          s = p.read_text()
+          replacements = [
+              (
+                  '    width: int = METRIC_WIDTH,\n    fps: float = METRIC_FPS,\n) -> np.memmap:',
+                  '    width: int = METRIC_WIDTH,\n    height: int | None = None,\n    fps: float = METRIC_FPS,\n) -> np.memmap:',
+              ),
+              (
+                  '    height = even(width * source_height / source_width)\n    raw_path.parent.mkdir(parents=True, exist_ok=True)',
+                  '    height = even(width * source_height / source_width) if height is None else even(height)\n    raw_path.parent.mkdir(parents=True, exist_ok=True)',
+              ),
+              (
+                  '        frames = read_frames(Path(encoded["path"]), raw_path=work / f"baseline-{width}-metric.raw")',
+                  '        frames = read_frames(Path(encoded["path"]), raw_path=work / f"baseline-{width}-metric.raw", height=int(source_frames.shape[1]))',
+              ),
+              (
+                  '    candidate_base_frames = read_frames(Path(candidate_encode["path"]), raw_path=work / "atlas-base-metric.raw")',
+                  '    candidate_base_frames = read_frames(Path(candidate_encode["path"]), raw_path=work / "atlas-base-metric.raw", height=int(source_frames.shape[1]))',
+              ),
+          ]
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit(f'patch target missing: {old[:80]}')
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+          python -m py_compile gmp100_gate/runtime/real_footage_gate.py gmp100_gate/runtime/temporal_atlas.py
+          ls -la gmp100_gate/runtime
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg curl
+          ffmpeg -version | head -1
+          ffmpeg -hide_banner -encoders | grep -E 'libsvtav1|libaom-av1|libopus|libx264'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: gmp100_gate/runtime/requirements.txt
+
+      - name: Install metric dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r gmp100_gate/runtime/requirements.txt
+
+      - name: Download openly licensed 1080p source
+        run: |
+          mkdir -p source
+          curl -L --fail --retry 8 --retry-all-errors --connect-timeout 30 \
+            "$SOURCE_URL" -o source/tears_of_steel_1080p.mkv
+          test -s source/tears_of_steel_1080p.mkv
+          ffprobe -v error -show_entries format=duration,size \
+            -show_entries stream=codec_name,width,height,pix_fmt \
+            -of json source/tears_of_steel_1080p.mkv | tee source/source-probe.json
+
+      - name: Run 60-second proportional-cap gate
+        id: gate
+        shell: bash
+        run: |
+          rm -rf artifacts
+          set +e
+          python gmp100_gate/runtime/real_footage_gate.py \
+            --source source/tears_of_steel_1080p.mkv \
+            --output-dir artifacts \
+            --start 480 \
+            --duration 60 \
+            > /tmp/gmp-gate-stdout.log \
+            2> /tmp/gmp-gate-stderr.log
+          rc=$?
+          set -e
+          mkdir -p artifacts
+          cp /tmp/gmp-gate-stdout.log artifacts/gate-stdout.log || true
+          cp /tmp/gmp-gate-stderr.log artifacts/gate-stderr.log || true
+          echo "$rc" > artifacts/gate-exit-code.txt
+          echo "gate_exit_code=$rc" >> "$GITHUB_OUTPUT"
+          tail -200 artifacts/gate-stderr.log || true
+          tail -100 artifacts/gate-stdout.log || true
+          exit 0
+
+      - name: Remove transient raw frames
+        if: always()
+        run: |
+          rm -rf artifacts/work
+          find artifacts -maxdepth 1 -type f -printf '%f %s bytes\n' | sort || true
+
+      - name: Publish compact gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gmp100-real-footage-gate-1b-1080p
+          path: |
+            artifacts/*.json
+            artifacts/*.md
+            artifacts/*.log
+            artifacts/*.txt
+            artifacts/*.png
+            artifacts/*.mp4
+            artifacts/*.gmp
+            source/source-probe.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Enforce execution status after evidence upload
+        if: always()
+        shell: bash
+        run: |
+          rc="${{ steps.gate.outputs.gate_exit_code }}"
+          if [[ "$rc" != "0" && "$rc" != "3" ]]; then
+            echo "Gate execution failed with exit code $rc"
+            exit "$rc"
+          fi
