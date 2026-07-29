@@ -1,0 +1,11 @@
+{
+  "completed_at": "2026-07-17T00:01:40.167203+00:00",
+  "head_sha": "516b5a8a2291506fc7ec5cc669527ca805152c16",
+  "job_status": "failure",
+  "report": null,
+  "run_attempt": "1",
+  "run_id": "29543437829",
+  "run_url": "https://github.com/max1018/test-repo/actions/runs/29543437829",
+  "schema_version": 1,
+  "summary": null
+}

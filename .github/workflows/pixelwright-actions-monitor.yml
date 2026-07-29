@@ -1,0 +1,88 @@
+name: Pixelwright Actions Monitor
+
+on:
+  push:
+    branches: [pixelwright-staging-100-20260716]
+    paths:
+      - ".github/workflows/pixelwright-actions-monitor.yml"
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Snapshot staging workflow runs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          TARGET_BRANCH: pixelwright-staging-100-20260716
+          RESULT_PATH: pixelwright_staging/results/actions-runs.json
+        run: |
+          python - <<'PY'
+          import base64, json, os, urllib.error, urllib.parse, urllib.request
+          from datetime import datetime, timezone
+          repo = os.environ["REPOSITORY"]
+          branch = os.environ["TARGET_BRANCH"]
+          token = os.environ["GITHUB_TOKEN"]
+          headers = {
+              "Accept": "application/vnd.github+json",
+              "Authorization": f"Bearer {token}",
+              "X-GitHub-Api-Version": "2022-11-28",
+              "Content-Type": "application/json",
+              "User-Agent": "pixelwright-actions-monitor",
+          }
+          runs_url = f"https://api.github.com/repos/{repo}/actions/runs?branch={urllib.parse.quote(branch)}&per_page=30"
+          req = urllib.request.Request(runs_url, headers=headers)
+          with urllib.request.urlopen(req, timeout=30) as response:
+              payload = json.loads(response.read())
+          runs = []
+          for run in payload.get("workflow_runs", []):
+              if run.get("name") in {
+                  "Pixelwright 100-Mission Staging Acceptance",
+                  "Pixelwright Actions Heartbeat",
+                  "Pixelwright Actions Monitor",
+              }:
+                  runs.append({
+                      "id": run.get("id"),
+                      "name": run.get("name"),
+                      "event": run.get("event"),
+                      "status": run.get("status"),
+                      "conclusion": run.get("conclusion"),
+                      "head_sha": run.get("head_sha"),
+                      "run_number": run.get("run_number"),
+                      "run_attempt": run.get("run_attempt"),
+                      "created_at": run.get("created_at"),
+                      "updated_at": run.get("updated_at"),
+                      "html_url": run.get("html_url"),
+                  })
+          result = {
+              "recorded_at": datetime.now(timezone.utc).isoformat(),
+              "branch": branch,
+              "runs": runs,
+          }
+          content = json.dumps(result, indent=2, sort_keys=True).encode()
+          path = os.environ["RESULT_PATH"]
+          contents_url = f"https://api.github.com/repos/{repo}/contents/{path}"
+          sha = None
+          try:
+              req = urllib.request.Request(contents_url + "?ref=" + urllib.parse.quote(branch, safe=""), headers=headers)
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  sha = json.loads(response.read())["sha"]
+          except urllib.error.HTTPError as exc:
+              if exc.code != 404:
+                  raise
+          body = {
+              "message": "Snapshot Pixelwright staging workflow runs",
+              "content": base64.b64encode(content).decode(),
+              "branch": branch,
+          }
+          if sha:
+              body["sha"] = sha
+          req = urllib.request.Request(contents_url, data=json.dumps(body).encode(), method="PUT", headers=headers)
+          with urllib.request.urlopen(req, timeout=30) as response:
+              print(response.status)
+          PY
